@@ -1,0 +1,20 @@
+# 🎬 InstaVideoSplitter GUI
+
+A desktop video trimming tool built with Python and `CustomTkinter`, designed to quickly split long videos (e.g., for Instagram Stories) into smaller segments.
+
+## ✨ Features
+
+- Drag-and-drop GUI for easy video trimming
+- Supports output segment durations: 15, 30, 60, 90 seconds
+- Real-time progress bar and status updates
+- Thumbnail preview of the video
+- Auto-opens the output directory after trimming
+- Dark/Light mode toggle
+- Clean, responsive layout using `CustomTkinter`
+
+## 🛠️ Requirements
+
+Install dependencies with:
+
+```bash
+pip install -r requirements.txt

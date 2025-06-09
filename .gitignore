@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+ENV/
+venv/
+
+# Editor settings
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp_*.png
+*.log
+
+# Compiled moviepy caches
+*.mp4.cache
+*.mkv.cache
+
+# Test exports
+*-part*.mp4
