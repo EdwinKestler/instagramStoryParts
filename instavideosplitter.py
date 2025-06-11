@@ -1,4 +1,5 @@
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, ColorClip, AudioClip, concatenate_videoclips
+import numpy as np
 import os
 import sys
 import subprocess
@@ -84,9 +85,55 @@ def export_part(video_path: str, start_time: float, end_time: float, output_path
     except subprocess.CalledProcessError as e:
         return output_path, False, str(e)
 
-def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None, 
-                        progress_callback: Optional[callable] = None, 
-                        segment_duration: int = SEGMENT_DURATION_DEFAULT) -> int:
+def pad_with_black(video_path: str, pad_duration: float) -> Tuple[bool, Optional[str]]:
+    """Append black frames to a video using moviepy."""
+    try:
+        clip = VideoFileClip(video_path)
+        w, h = clip.size
+        fps = clip.fps or 24
+        audio = clip.audio
+
+        black = ColorClip(size=(w, h), color=(0, 0, 0), duration=pad_duration)
+        if audio:
+            sr = int(audio.fps)
+            silence = AudioClip(lambda t: np.zeros_like(t), duration=pad_duration, fps=sr)
+            black = black.set_audio(silence)
+
+        final = concatenate_videoclips([clip, black])
+        temp_path = video_path + ".tmp"
+        final.write_videofile(
+            temp_path,
+            codec="libx264",
+            audio=audio is not None,
+            audio_codec=AUDIO_CODEC if audio else None,
+            audio_bitrate=AUDIO_BITRATE if audio else None,
+            audio_fps=int(audio.fps) if audio else None,
+            verbose=False,
+            preset=PRESET,
+            threads=THREADS,
+            ffmpeg_params=["-ac", str(AUDIO_CHANNELS)]
+        )
+        final.close()
+        clip.close()
+        os.replace(temp_path, video_path)
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+def export_and_pad(video_path: str, start_time: float, end_time: float, output_path: str, pad_time: float) -> Tuple[str, bool, Optional[str]]:
+    """Export a segment and optionally pad with black frames."""
+    out, success, err = export_part(video_path, start_time, end_time, output_path)
+    if success and pad_time > 0:
+        ok, perr = pad_with_black(output_path, pad_time)
+        if not ok:
+            return output_path, False, perr
+    return out, success, err
+
+def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
+                        progress_callback: Optional[callable] = None,
+                        segment_duration: int = SEGMENT_DURATION_DEFAULT,
+                        offset: float = 0.0,
+                        ask_allow_long_last_part: Optional[callable] = None) -> int:
     """Trim a video into parts, aligning cuts with keyframes for better quality.
     
     Args:
@@ -125,19 +172,27 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
         tasks = []
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             for i in range(num_parts):
-                start_time = i * segment_duration
-                end_time = min((i + 1) * segment_duration, video_duration)
-                
-                # Adjust times to nearest keyframes
-                adjusted_start = adjust_to_keyframe(start_time, keyframes)
-                adjusted_end = adjust_to_keyframe(end_time, keyframes)
-                
-                # Ensure adjusted times are valid
-                if adjusted_start >= adjusted_end or adjusted_end > video_duration:
-                    print(f"[WARNING] Invalid time range after adjustment: {adjusted_start} to {adjusted_end}, using original")
-                    adjusted_start = start_time
-                    adjusted_end = end_time
-                
+                part_start_nominal = i * segment_duration
+                part_start = adjust_to_keyframe(part_start_nominal, keyframes) + offset
+                part_start = max(0, min(part_start, video_duration))
+                part_end = min(part_start + segment_duration, video_duration)
+
+                if i == num_parts - 1:
+                    actual_length = video_duration - part_start
+                    if actual_length < segment_duration:
+                        pad_time = segment_duration - actual_length
+                    else:
+                        pad_time = 0
+                        if actual_length > segment_duration and actual_length <= segment_duration * 1.1:
+                            if ask_allow_long_last_part and ask_allow_long_last_part(actual_length):
+                                part_end = video_duration
+                            else:
+                                part_end = min(part_start + segment_duration, video_duration)
+                        else:
+                            part_end = min(part_start + segment_duration, video_duration)
+                else:
+                    pad_time = 0
+
                 output_filename = f"{base_name}-part{i+1}.mp4"
                 output_path = os.path.join(output_dir, output_filename)
 
@@ -145,7 +200,7 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
                     print(f"[INFO] Skipping existing file: {output_filename}")
                     continue
 
-                tasks.append(executor.submit(export_part, video_path, adjusted_start, adjusted_end, output_path))
+                tasks.append(executor.submit(export_and_pad, video_path, part_start, part_end, output_path, pad_time))
 
             # Track progress
             completed_parts = 0

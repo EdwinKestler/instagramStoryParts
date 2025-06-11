@@ -24,14 +24,14 @@ class VideoSplitterApp(customtkinter.CTk):
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
-        self.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6, 7), weight=1)
+        self.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8), weight=1)
 
         # Frames
         self.left_frame = customtkinter.CTkFrame(self)
-        self.left_frame.grid(row=0, column=0, rowspan=8, padx=10, pady=10, sticky="nsew")
+        self.left_frame.grid(row=0, column=0, rowspan=9, padx=10, pady=10, sticky="nsew")
 
         self.right_frame = customtkinter.CTkFrame(self)
-        self.right_frame.grid(row=0, column=1, rowspan=8, padx=10, pady=10, sticky="nsew")
+        self.right_frame.grid(row=0, column=1, rowspan=9, padx=10, pady=10, sticky="nsew")
 
         # Logo
         try:
@@ -52,15 +52,23 @@ class VideoSplitterApp(customtkinter.CTk):
         self.duration_menu.set("60")
         self.duration_menu.grid(row=3, column=0, pady=5, padx=10, sticky="w")
 
+        self.offset = 0.0
+        self.offset_slider = customtkinter.CTkSlider(self.left_frame, from_=-5, to=5, command=self.set_offset)
+        self.offset_slider.set(0)
+        self.offset_slider.grid(row=4, column=0, pady=5, padx=10, sticky="we")
+
+        self.offset_label = customtkinter.CTkLabel(self.left_frame, text="Offset: 0s")
+        self.offset_label.grid(row=5, column=0, pady=5, padx=10, sticky="w")
+
         self.start_button = customtkinter.CTkButton(self.left_frame, text="Trim Video", command=self.start_trimming)
-        self.start_button.grid(row=4, column=0, pady=10, padx=10, sticky="w")
+        self.start_button.grid(row=6, column=0, pady=10, padx=10, sticky="w")
 
         self.quit_button = customtkinter.CTkButton(self.left_frame, text="Close Program", command=self.quit_app)
-        self.quit_button.grid(row=5, column=0, pady=10, padx=10, sticky="w")
+        self.quit_button.grid(row=7, column=0, pady=10, padx=10, sticky="w")
 
         self.theme_switch = customtkinter.CTkSwitch(self.left_frame, text="Dark Mode", command=self.toggle_theme)
         self.theme_switch.select()
-        self.theme_switch.grid(row=6, column=0, padx=10, pady=10, sticky="w")
+        self.theme_switch.grid(row=8, column=0, padx=10, pady=10, sticky="w")
 
         # Thumbnail Preview
         self.thumbnail_label = customtkinter.CTkLabel(self.right_frame, text="Thumbnail preview will appear here")
@@ -85,6 +93,10 @@ class VideoSplitterApp(customtkinter.CTk):
         self.segment_duration = int(value)
         self.update_log()
 
+    def set_offset(self, value):
+        self.offset = float(value)
+        self.offset_label.configure(text=f"Offset: {self.offset:+.1f}s")
+
     def browse_video(self):
         path = filedialog.askopenfilename(filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv")])
         if path:
@@ -101,7 +113,13 @@ class VideoSplitterApp(customtkinter.CTk):
     def update_log(self):
         self.log_display.configure(state="normal")
         self.log_display.delete("0.0", "end")
-        self.log_display.insert("0.0", f"Video: {os.path.basename(self.file_path) if self.file_path else 'None'}\nOutput: {self.output_dir if self.output_dir else 'None'}\nSegment Duration: {self.segment_duration} seconds")
+        self.log_display.insert(
+            "0.0",
+            f"Video: {os.path.basename(self.file_path) if self.file_path else 'None'}\n"
+            f"Output: {self.output_dir if self.output_dir else 'None'}\n"
+            f"Segment Duration: {self.segment_duration} seconds\n"
+            f"Offset: {self.offset:+.1f}s"
+        )
         self.log_display.configure(state="disabled")
 
     def start_trimming(self):
@@ -119,7 +137,14 @@ class VideoSplitterApp(customtkinter.CTk):
         try:
             self.progress.set(0)
             self.status_label.configure(text="Processing...")
-            num_parts = trim_video_to_parts(self.file_path, self.output_dir, self.update_progress, self.segment_duration)
+            num_parts = trim_video_to_parts(
+                self.file_path,
+                self.output_dir,
+                self.update_progress,
+                self.segment_duration,
+                offset=self.offset,
+                ask_allow_long_last_part=self.ask_allow_longer
+            )
             self.progress.set(1)
             self.status_label.configure(text=f"Done: Trimmed into {num_parts} parts.")
             messagebox.showinfo("Success", f"Trimmed into {num_parts} parts.")
@@ -154,6 +179,12 @@ class VideoSplitterApp(customtkinter.CTk):
         except Exception as e:
             self.thumbnail_label.configure(text=f"Thumbnail error: {str(e)}")
 
+    def ask_allow_longer(self, length):
+        return messagebox.askyesno(
+            "Allow longer last part?",
+            f"The last part will be {length:.1f}s. Allow this length?"
+        )
+
     def quit_app(self):
         self.destroy()
 
@@ -164,4 +195,4 @@ class VideoSplitterApp(customtkinter.CTk):
 if __name__ == "__main__":
     app = VideoSplitterApp()
     app.mainloop()
-# instavideosplitter_gui.py
+
