@@ -8,6 +8,7 @@ import imageio_ffmpeg
 import moviepy.config as mpy_config
 from ffprobe_utils import get_ffprobe_path, run_ffprobe
 from typing import Tuple, Optional, Dict, Any, List
+from logger_config import get_logger
 
 # Constants for configuration
 FFMPEG_BINARY = imageio_ffmpeg.get_ffmpeg_exe()
@@ -16,6 +17,8 @@ MAX_WORKERS = 4
 
 # Set FFMPEG binary for stability
 mpy_config.change_settings({"FFMPEG_BINARY": FFMPEG_BINARY})
+
+logger = get_logger(__name__)
 
 
 def get_keyframes(video_path: str, ffprobe_path: str) -> List[float]:
@@ -28,9 +31,13 @@ def get_keyframes(video_path: str, ffprobe_path: str) -> List[float]:
     Returns:
         List[float]: List of keyframe timestamps in seconds.
     """
-    data = run_ffprobe(ffprobe_path, ["-select_streams", "v:0", "-show_entries", "frame=pkt_pts_time,pts_time,pict_type"], video_path)
+    data = run_ffprobe(
+        ffprobe_path,
+        ["-select_streams", "v:0", "-show_entries", "frame=pkt_pts_time,pts_time,pict_type"],
+        video_path,
+    )
     if not data or "frames" not in data:
-        print(f"[WARNING] No keyframes detected in {video_path}")
+        logger.warning("No keyframes detected in %s", video_path)
         return []
     keyframes = []
     for f in data["frames"]:
@@ -38,7 +45,7 @@ def get_keyframes(video_path: str, ffprobe_path: str) -> List[float]:
             time = f.get("pkt_pts_time") or f.get("pts_time")
             if time is not None:
                 keyframes.append(float(time))
-    print(f"[INFO] Found {len(keyframes)} keyframes in {video_path}")
+    logger.info("Found %d keyframes in %s", len(keyframes), video_path)
     return keyframes
 
 def adjust_to_keyframe(time: float, keyframes: List[float]) -> float:
@@ -52,10 +59,10 @@ def adjust_to_keyframe(time: float, keyframes: List[float]) -> float:
         float: Adjusted time aligned to the nearest keyframe.
     """
     if not keyframes:
-        print(f"[INFO] No keyframes found, using original time: {time}")
+        logger.info("No keyframes found, using original time: %s", time)
         return time
     closest_keyframe = min(keyframes, key=lambda x: abs(x - time))
-    print(f"[INFO] Adjusted time {time} to keyframe at {closest_keyframe}")
+    logger.info("Adjusted time %s to keyframe at %s", time, closest_keyframe)
     return closest_keyframe
 
 def export_part(video_path: str, start_time: float, end_time: float, output_path: str) -> Tuple[str, bool, Optional[str]]:
@@ -113,9 +120,9 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
         if video_duration % segment_duration != 0:
             num_parts += 1
 
-        print(f"[INFO] Video duration: {video_duration:.2f} seconds")
-        print(f"[INFO] Segment duration: {segment_duration} seconds")
-        print(f"[INFO] Total parts: {num_parts}")
+        logger.info("Video duration: %.2f seconds", video_duration)
+        logger.info("Segment duration: %d seconds", segment_duration)
+        logger.info("Total parts: %d", num_parts)
 
         # Get keyframes for alignment
         ffprobe_path = get_ffprobe_path()
@@ -134,7 +141,11 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
                 
                 # Ensure adjusted times are valid
                 if adjusted_start >= adjusted_end or adjusted_end > video_duration:
-                    print(f"[WARNING] Invalid time range after adjustment: {adjusted_start} to {adjusted_end}, using original")
+                    logger.warning(
+                        "Invalid time range after adjustment: %s to %s, using original",
+                        adjusted_start,
+                        adjusted_end,
+                    )
                     adjusted_start = start_time
                     adjusted_end = end_time
                 
@@ -142,7 +153,7 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
                 output_path = os.path.join(output_dir, output_filename)
 
                 if os.path.exists(output_path):
-                    print(f"[INFO] Skipping existing file: {output_filename}")
+                    logger.info("Skipping existing file: %s", output_filename)
                     continue
 
                 tasks.append(executor.submit(export_part, video_path, adjusted_start, adjusted_end, output_path))
@@ -155,21 +166,21 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
                 if progress_callback:
                     progress_callback(completed_parts, num_parts)
                 if success:
-                    print(f"[INFO] Exported: {output_path}")
+                    logger.info("Exported: %s", output_path)
                 else:
-                    print(f"[ERROR] Failed: {output_path} - {error}")
+                    logger.error("Failed: %s - %s", output_path, error)
 
         video.close()
         return num_parts
 
     except FileNotFoundError as e:
-        print(f"[ERROR] Video file not found: {e}")
+        logger.error("Video file not found: %s", e)
         raise
     except ValueError as e:
-        print(f"[ERROR] Invalid video data or time range: {e}")
+        logger.error("Invalid video data or time range: %s", e)
         raise
     except Exception as e:
-        print(f"[ERROR] Exception in trim_video_to_parts: {e}")
+        logger.error("Exception in trim_video_to_parts: %s", e)
         raise
 
 if __name__ == "__main__":

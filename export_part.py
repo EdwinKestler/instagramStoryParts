@@ -6,6 +6,7 @@ from moviepy.editor import VideoFileClip
 import imageio_ffmpeg
 import moviepy.config as mpy_config
 from ffprobe_utils import get_ffprobe_path, run_ffprobe
+from logger_config import get_logger
 
 # Constants for configuration
 FFMPEG_BINARY = imageio_ffmpeg.get_ffmpeg_exe()
@@ -20,6 +21,8 @@ AUDIO_CHANNELS = 2
 # Set FFMPEG binary for stability
 mpy_config.change_settings({"FFMPEG_BINARY": FFMPEG_BINARY})
 
+logger = get_logger(__name__)
+
 
 def check_audio_stream(video_path: str, ffprobe_path: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
     """Check if the input video has an audio stream.
@@ -33,12 +36,15 @@ def check_audio_stream(video_path: str, ffprobe_path: str) -> Tuple[bool, Option
     """
     data = run_ffprobe(ffprobe_path, ["-show_streams", "-select_streams", "a"], video_path)
     if not data or "streams" not in data or not data["streams"]:
-        print(f"[WARNING] No audio stream detected in {video_path}")
+        logger.warning("No audio stream detected in %s", video_path)
         return False, None
     audio_info = data["streams"][0]
-    print(f"[INFO] Audio stream detected in {video_path}: "
-          f"codec={audio_info.get('codec_name', 'unknown')}, "
-          f"sample_rate={audio_info.get('sample_rate', 'unknown')}")
+    logger.info(
+        "Audio stream detected in %s: codec=%s, sample_rate=%s",
+        video_path,
+        audio_info.get("codec_name", "unknown"),
+        audio_info.get("sample_rate", "unknown"),
+    )
     return True, audio_info
 
 def verify_output_audio(output_path: str, ffprobe_path: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
@@ -53,12 +59,15 @@ def verify_output_audio(output_path: str, ffprobe_path: str) -> Tuple[bool, Opti
     """
     data = run_ffprobe(ffprobe_path, ["-show_streams", "-select_streams", "a"], output_path)
     if not data or "streams" not in data or not data["streams"]:
-        print(f"[WARNING] No audio stream detected in output {output_path}")
+        logger.warning("No audio stream detected in output %s", output_path)
         return False, None
     audio_info = data["streams"][0]
-    print(f"[INFO] Audio stream verified in {output_path}: "
-          f"codec={audio_info.get('codec_name', 'unknown')}, "
-          f"sample_rate={audio_info.get('sample_rate', 'unknown')}")
+    logger.info(
+        "Audio stream verified in %s: codec=%s, sample_rate=%s",
+        output_path,
+        audio_info.get("codec_name", "unknown"),
+        audio_info.get("sample_rate", "unknown"),
+    )
     return True, audio_info
 
 def main():
@@ -67,14 +76,20 @@ def main():
     try:
         video_path, start, end, output_path = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), sys.argv[4]
     except (IndexError, ValueError) as e:
-        print(f"[ERROR] Invalid arguments: {e}")
+        logger.error("Invalid arguments: %s", e)
         sys.exit(1)
 
     # Generate unique temp audio file name
     base_name = os.path.splitext(os.path.basename(output_path))[0]
     temp_audio_file = f"temp-audio-{base_name}.m4a"
 
-    print(f"[INFO] Trimming {video_path} from {start}s to {end}s into {output_path}")
+    logger.info(
+        "Trimming %s from %.2fs to %.2fs into %s",
+        video_path,
+        start,
+        end,
+        output_path,
+    )
     
     # Locate ffprobe once
     ffprobe_path = get_ffprobe_path()
@@ -117,30 +132,30 @@ def main():
         if has_audio:
             output_has_audio, output_audio_info = verify_output_audio(output_path, ffprobe_path)
             if not output_has_audio:
-                print(f"[WARNING] Audio export failed for {output_path}")
+                logger.warning("Audio export failed for %s", output_path)
         
         # Clean up temp file
         if has_audio and os.path.exists(temp_audio_file):
             try:
                 os.remove(temp_audio_file)
-                print(f"[INFO] Cleaned up temporary audio file: {temp_audio_file}")
+                logger.info("Cleaned up temporary audio file: %s", temp_audio_file)
             except OSError as e:
-                print(f"[WARNING] Failed to remove temp audio file {temp_audio_file}: {e}")
+                logger.warning("Failed to remove temp audio file %s: %s", temp_audio_file, e)
                 
     except FileNotFoundError as e:
-        print(f"[ERROR] Video file not found: {e}")
+        logger.error("Video file not found: %s", e)
         sys.exit(1)
     except ValueError as e:
-        print(f"[ERROR] Invalid time range or video data: {e}")
+        logger.error("Invalid time range or video data: %s", e)
         sys.exit(1)
     except Exception as e:
-        print(f"[ERROR] Error trimming video: {e}")
+        logger.error("Error trimming video: %s", e)
         if has_audio and os.path.exists(temp_audio_file):
             try:
                 os.remove(temp_audio_file)
-                print(f"[INFO] Cleaned up temporary audio file on error: {temp_audio_file}")
+                logger.info("Cleaned up temporary audio file on error: %s", temp_audio_file)
             except OSError as e:
-                print(f"[WARNING] Failed to remove temp audio file on error {temp_audio_file}: {e}")
+                logger.warning("Failed to remove temp audio file on error %s: %s", temp_audio_file, e)
         sys.exit(1)
 
 if __name__ == "__main__":
