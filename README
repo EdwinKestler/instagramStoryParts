@@ -18,3 +18,47 @@ Install dependencies with:
 
 ```bash
 pip install -r requirements.txt
+```
+
+## 🚀 Command Line Usage
+
+Run the splitter directly from the command line:
+
+```bash
+python instavideosplitter.py myvideo.mp4 -d 60 -o output_folder
+```
+
+- `-d/--duration` sets the segment length in seconds.
+- `-o/--output-dir` sets where parts are saved (defaults to the video folder).
+- `-f/--offset` applies an offset after keyframe alignment. Use negative values
+  to start earlier or positive to start later.
+- `--allow-long-last` automatically keeps a final segment that is only slightly
+  longer than requested.
+
+The script prints progress in the terminal and, if the last part is slightly
+longer than the chosen duration, asks whether to keep it unless
+`--allow-long-last` is provided.
+
+## 🖥️ GUI Usage
+
+Launch the graphical interface with:
+
+```bash
+python instavideosplitter_gui.py
+```
+
+1. **Browse for Video** – pick the file to split.
+2. **Select Output Directory** – choose where clips will be saved.
+3. **Segment Duration** – select 15, 30, 60 or 90 seconds.
+4. **Offset Slider** – fine tune each cut by ±5 seconds relative to the nearest
+   keyframe. This lets you shift all parts slightly earlier or later.
+5. Press **Trim Video** to begin. A progress bar shows the status and the output
+   folder opens when done.
+
+### Last Segment Behaviour
+
+If the last portion of the video is shorter than the chosen duration it is
+padded with black frames so every segment has the same length. When it is only
+slightly longer (up to about 10 % beyond the duration) you will be asked whether
+to keep the extra seconds. The `--allow-long-last` flag on the command line or
+accepting the prompt in the GUI retains the longer clip.
