@@ -60,30 +60,36 @@ def adjust_to_keyframe(time: float, keyframes: List[float]) -> float:
     return closest_keyframe
 
 def export_part(video_path: str, start_time: float, end_time: float, output_path: str) -> Tuple[str, bool, Optional[str]]:
-    """Export a video segment by calling export_part.py.
-    
+    """Export a segment using ffmpeg without re-encoding when possible.
+
     Args:
         video_path: Path to the input video.
         start_time: Start time in seconds.
         end_time: End time in seconds.
         output_path: Path for the output video.
-    
+
     Returns:
-        Tuple[str, bool, Optional[str]]: (output_path, success, error_message)
+        Tuple[str, bool, Optional[str]]: (output_path, success, error message)
     """
+
+    duration = max(end_time - start_time, 0)
+
     command = [
-        sys.executable,
-        os.path.join(os.path.dirname(__file__), "export_part.py"),
-        video_path,
-        str(start_time),
-        str(end_time),
-        output_path
+        FFMPEG_BINARY,
+        "-y",                 # overwrite output
+        "-ss", str(start_time),
+        "-i", video_path,
+        "-t", str(duration),
+        "-c", "copy",
+        output_path,
     ]
+
     try:
-        subprocess.run(command, check=True)
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         return output_path, True, None
     except subprocess.CalledProcessError as e:
-        return output_path, False, str(e)
+        error_msg = e.stderr.decode() if e.stderr else str(e)
+        return output_path, False, error_msg
 
 def pad_with_black(video_path: str, pad_duration: float) -> Tuple[bool, Optional[str]]:
     """Append black frames to a video using moviepy."""
