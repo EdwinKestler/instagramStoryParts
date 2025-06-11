@@ -8,6 +8,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import imageio_ffmpeg
 import moviepy.config as mpy_config
 from ffprobe_utils import get_ffprobe_path, run_ffprobe
+from export_part import (
+    AUDIO_CODEC,
+    AUDIO_BITRATE,
+    PRESET,
+    THREADS,
+    AUDIO_CHANNELS,
+)
 from typing import Tuple, Optional, Dict, Any, List
 
 # Constants for configuration
