@@ -172,9 +172,16 @@ class VideoSplitterApp(customtkinter.CTk):
             frame = clip.get_frame(0)
             temp_thumb_path = "temp_thumb.png"
             cv2.imwrite(temp_thumb_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            thumb_image = customtkinter.CTkImage(Image.open(temp_thumb_path), size=(200, 120))
+            pil_img = Image.open(temp_thumb_path)
+            thumb_image = customtkinter.CTkImage(pil_img, size=(200, 120))
             self.thumbnail_label.configure(image=thumb_image, text="")
             self.thumbnail_label.image = thumb_image
+            pil_img.close()
+            try:
+                if os.path.exists(temp_thumb_path):
+                    os.remove(temp_thumb_path)
+            except Exception as del_err:
+                print(f"Failed to delete {temp_thumb_path}: {del_err}")
             clip.close()
         except Exception as e:
             self.thumbnail_label.configure(text=f"Thumbnail error: {str(e)}")
