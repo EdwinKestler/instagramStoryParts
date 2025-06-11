@@ -234,6 +234,52 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
         raise
 
 if __name__ == "__main__":
-    # Example usage for testing
-    video_path = "sample_video.mp4"
-    trim_video_to_parts(video_path, segment_duration=SEGMENT_DURATION_DEFAULT)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Split a video into Instagram story sized segments")
+    parser.add_argument(
+        "video",
+        help="Path to the input video file")
+    parser.add_argument(
+        "-o", "--output-dir",
+        help="Directory to save the segments (defaults to the video folder)")
+    parser.add_argument(
+        "-d", "--duration",
+        type=int,
+        default=SEGMENT_DURATION_DEFAULT,
+        help="Length of each segment in seconds")
+    parser.add_argument(
+        "-f", "--offset",
+        type=float,
+        default=0.0,
+        help="Offset applied after keyframe alignment in seconds")
+    parser.add_argument(
+        "--allow-long-last",
+        action="store_true",
+        help="Allow the last part to exceed the duration if it is only slightly longer")
+    args = parser.parse_args()
+
+    def cli_allow(length: float) -> bool:
+        if args.allow_long_last:
+            return True
+        try:
+            resp = input(
+                f"The last part will be {length:.1f}s (>{args.duration}s). Allow? [y/N] ")
+            return resp.strip().lower().startswith("y")
+        except EOFError:
+            return False
+
+    def cli_progress(completed: int, total: int):
+        percent = int(completed / total * 100)
+        print(f"\rProgress: {completed}/{total} ({percent}%)", end="")
+
+    trim_video_to_parts(
+        args.video,
+        output_dir=args.output_dir,
+        progress_callback=cli_progress,
+        segment_duration=args.duration,
+        offset=args.offset,
+        ask_allow_long_last_part=cli_allow,
+    )
+    print()
