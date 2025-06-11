@@ -113,13 +113,13 @@ class VideoSplitterApp(customtkinter.CTk):
     def update_log(self):
         self.log_display.configure(state="normal")
         self.log_display.delete("0.0", "end")
-        self.log_display.insert(
-            "0.0",
+        log_text = (
             f"Video: {os.path.basename(self.file_path) if self.file_path else 'None'}\n"
             f"Output: {self.output_dir if self.output_dir else 'None'}\n"
             f"Segment Duration: {self.segment_duration} seconds\n"
             f"Offset: {self.offset:+.1f}s"
         )
+        self.log_display.insert("0.0", log_text)
         self.log_display.configure(state="disabled")
 
     def start_trimming(self):
