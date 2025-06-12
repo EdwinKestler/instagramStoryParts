@@ -3,9 +3,8 @@ import json
 import subprocess
 import shutil
 from typing import Optional, Dict, Any
-import imageio_ffmpeg
+from ffmpeg_config import get_ffmpeg_path
 
-FFMPEG_BINARY = imageio_ffmpeg.get_ffmpeg_exe()
 
 
 def get_ffprobe_path() -> Optional[str]:
@@ -15,7 +14,7 @@ def get_ffprobe_path() -> Optional[str]:
         Optional[str]: Path to ffprobe if found, None otherwise.
     """
     try:
-        ffmpeg_path = FFMPEG_BINARY
+        ffmpeg_path = get_ffmpeg_path()
         ffprobe_path = os.path.join(os.path.dirname(ffmpeg_path), "ffprobe")
         if os.path.exists(ffprobe_path):
             print(f"[INFO] ffprobe found at {ffprobe_path}")

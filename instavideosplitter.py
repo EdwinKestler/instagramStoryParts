@@ -5,8 +5,8 @@ import sys
 import subprocess
 import shlex
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import imageio_ffmpeg
 import moviepy.config as mpy_config
+from ffmpeg_config import get_ffmpeg_path
 from ffprobe_utils import get_ffprobe_path, run_ffprobe
 from export_part import (
     AUDIO_CODEC,
@@ -18,12 +18,11 @@ from export_part import (
 from typing import Tuple, Optional, Dict, Any, List
 
 # Constants for configuration
-FFMPEG_BINARY = imageio_ffmpeg.get_ffmpeg_exe()
 SEGMENT_DURATION_DEFAULT = 60
 MAX_WORKERS = 4
 
 # Set FFMPEG binary for stability
-mpy_config.change_settings({"FFMPEG_BINARY": FFMPEG_BINARY})
+mpy_config.change_settings({"FFMPEG_BINARY": get_ffmpeg_path()})
 
 
 def get_keyframes(video_path: str, ffprobe_path: str) -> List[float]:
@@ -82,7 +81,7 @@ def export_part(video_path: str, start_time: float, end_time: float, output_path
     duration = max(end_time - start_time, 0)
 
     command = [
-        FFMPEG_BINARY,
+        get_ffmpeg_path(),
         "-y",                 # overwrite output
         "-ss", str(start_time),
         "-i", video_path,
