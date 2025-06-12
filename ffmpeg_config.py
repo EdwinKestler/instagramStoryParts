@@ -1,18 +1,32 @@
+import os
 import imageio_ffmpeg
 import moviepy.config as mpy_config
 
-_ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-mpy_config.change_settings({"FFMPEG_BINARY": _ffmpeg_path})
+_ffmpeg_dir = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
+mpy_config.change_settings({"FFMPEG_BINARY": os.path.join(_ffmpeg_dir, "ffmpeg")})
+
+
+def set_ffmpeg_dir(path: str) -> None:
+    """Set the directory containing the ffmpeg binaries."""
+    global _ffmpeg_dir
+    if path:
+        _ffmpeg_dir = path
+        mpy_config.change_settings({"FFMPEG_BINARY": os.path.join(_ffmpeg_dir, "ffmpeg")})
 
 
 def set_ffmpeg_path(path: str) -> None:
-    """Set the path to the ffmpeg binary used by the application."""
-    global _ffmpeg_path
-    if path:
-        _ffmpeg_path = path
-        mpy_config.change_settings({"FFMPEG_BINARY": _ffmpeg_path})
+    """Compatibility wrapper: accept a binary path or directory."""
+    if path and not os.path.isdir(path):
+        path = os.path.dirname(path)
+    set_ffmpeg_dir(path)
+
+
+def get_ffmpeg_dir() -> str:
+    """Get the directory containing ffmpeg binaries."""
+    return _ffmpeg_dir
 
 
 def get_ffmpeg_path() -> str:
-    """Get the currently configured ffmpeg binary path."""
-    return _ffmpeg_path
+    """Get the full path to the ffmpeg executable."""
+    return os.path.join(_ffmpeg_dir, "ffmpeg")
+
