@@ -57,29 +57,23 @@ class VideoSplitterApp(customtkinter.CTk):
         self.duration_menu = customtkinter.CTkComboBox(self.left_frame, values=["15", "30", "60", "90"], command=self.set_duration)
         self.duration_menu.set("60")
         self.duration_menu.grid(row=4, column=0, pady=5, padx=10, sticky="w")
-        self.duration_menu.grid(row=4, column=0, pady=5, padx=10, sticky="w")
 
         self.offset = 0.0
         self.offset_slider = customtkinter.CTkSlider(self.left_frame, from_=-5, to=5, command=self.set_offset)
         self.offset_slider.set(0)
         self.offset_slider.grid(row=5, column=0, pady=5, padx=10, sticky="we")
-        self.offset_slider.grid(row=5, column=0, pady=5, padx=10, sticky="we")
 
         self.offset_label = customtkinter.CTkLabel(self.left_frame, text="Offset: 0s")
-        self.offset_label.grid(row=6, column=0, pady=5, padx=10, sticky="w")
         self.offset_label.grid(row=6, column=0, pady=5, padx=10, sticky="w")
 
         self.start_button = customtkinter.CTkButton(self.left_frame, text="Trim Video", command=self.start_trimming)
         self.start_button.grid(row=7, column=0, pady=10, padx=10, sticky="w")
-        self.start_button.grid(row=7, column=0, pady=10, padx=10, sticky="w")
 
         self.quit_button = customtkinter.CTkButton(self.left_frame, text="Close Program", command=self.quit_app)
-        self.quit_button.grid(row=8, column=0, pady=10, padx=10, sticky="w")
         self.quit_button.grid(row=8, column=0, pady=10, padx=10, sticky="w")
 
         self.theme_switch = customtkinter.CTkSwitch(self.left_frame, text="Dark Mode", command=self.toggle_theme)
         self.theme_switch.select()
-        self.theme_switch.grid(row=9, column=0, padx=10, pady=10, sticky="w")
         self.theme_switch.grid(row=9, column=0, padx=10, pady=10, sticky="w")
 
         # Thumbnail Preview
