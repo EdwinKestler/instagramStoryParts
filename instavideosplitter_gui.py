@@ -2,7 +2,7 @@
 import customtkinter
 from tkinter import filedialog, messagebox
 from instavideosplitter import trim_video_to_parts
-from ffmpeg_config import set_ffmpeg_dir, get_ffmpeg_path, get_ffmpeg_dir
+from ffmpeg_config import set_ffmpeg_path, get_ffmpeg_path
 import os
 import threading
 import subprocess
@@ -22,7 +22,7 @@ class VideoSplitterApp(customtkinter.CTk):
         self.file_path = None
         self.output_dir = None
         self.segment_duration = 60
-        self.ffmpeg_dir = get_ffmpeg_dir()
+        self.ffmpeg_path = get_ffmpeg_path()
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
@@ -50,7 +50,7 @@ class VideoSplitterApp(customtkinter.CTk):
         self.dir_button = customtkinter.CTkButton(self.left_frame, text="Select Output Directory", command=self.browse_output_dir)
         self.dir_button.grid(row=2, column=0, pady=5, padx=10, sticky="w")
 
-        self.ffmpeg_button = customtkinter.CTkButton(self.left_frame, text="Select ffmpeg Folder", command=self.browse_ffmpeg)
+        self.ffmpeg_button = customtkinter.CTkButton(self.left_frame, text="Select ffmpeg Binary", command=self.browse_ffmpeg)
         self.ffmpeg_button.grid(row=3, column=0, pady=5, padx=10, sticky="w")
 
         self.duration_menu = customtkinter.CTkComboBox(self.left_frame, values=["15", "30", "60", "90"], command=self.set_duration)
@@ -116,10 +116,10 @@ class VideoSplitterApp(customtkinter.CTk):
             self.update_log()
 
     def browse_ffmpeg(self):
-        path = filedialog.askdirectory()
+        path = filedialog.askopenfilename()
         if path:
-            self.ffmpeg_dir = path
-            set_ffmpeg_dir(path)
+            self.ffmpeg_path = path
+            set_ffmpeg_path(path)
             self.update_log()
 
     def update_log(self):
@@ -130,7 +130,7 @@ class VideoSplitterApp(customtkinter.CTk):
             f"Output: {self.output_dir if self.output_dir else 'None'}\n"
             f"Segment Duration: {self.segment_duration} seconds\n"
             f"Offset: {self.offset:+.1f}s\n"
-            f"ffmpeg dir: {self.ffmpeg_dir if self.ffmpeg_dir else 'Default'}"
+            f"ffmpeg: {self.ffmpeg_path if self.ffmpeg_path else 'Default'}"
         )
         self.log_display.insert("0.0", log_text)
         self.log_display.configure(state="disabled")
@@ -144,8 +144,8 @@ class VideoSplitterApp(customtkinter.CTk):
             self.output_dir = os.path.dirname(self.file_path)
             self.update_log()
 
-        # Ensure ffmpeg directory is applied
-        set_ffmpeg_dir(self.ffmpeg_dir)
+        # Ensure ffmpeg path is applied
+        set_ffmpeg_path(self.ffmpeg_path)
 
         threading.Thread(target=self.run_trimming).start()
 

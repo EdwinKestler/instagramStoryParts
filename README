@@ -54,6 +54,7 @@ python instavideosplitter_gui.py
 5. **Offset Slider** – fine tune each cut by ±5 seconds relative to the nearest
    keyframe. This lets you shift all parts slightly earlier or later.
 6. Press **Trim Video** to begin. A progress bar shows the status and the output
+6. Press **Trim Video** to begin. A progress bar shows the status and the output
    folder opens when done.
 
 ### Last Segment Behaviour
