@@ -14,6 +14,9 @@ venv/
 .idea/
 *.sublime-workspace
 *.sublime-project
+input/
+ouput/
+*.mp4
 
 # OS files
 .DS_Store
