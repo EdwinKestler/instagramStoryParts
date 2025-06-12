@@ -49,10 +49,11 @@ python instavideosplitter_gui.py
 
 1. **Browse for Video** – pick the file to split.
 2. **Select Output Directory** – choose where clips will be saved.
-3. **Segment Duration** – select 15, 30, 60 or 90 seconds.
-4. **Offset Slider** – fine tune each cut by ±5 seconds relative to the nearest
+3. **Select ffmpeg Folder** – specify the *folder* containing the ffmpeg executables. This is typically the `bin` directory with `ffmpeg`, `ffprobe`, `ffplay` and accompanying DLLs (e.g., `C:\ffmpeg\bin` on Windows).
+4. **Segment Duration** – select 15, 30, 60 or 90 seconds.
+5. **Offset Slider** – fine tune each cut by ±5 seconds relative to the nearest
    keyframe. This lets you shift all parts slightly earlier or later.
-5. Press **Trim Video** to begin. A progress bar shows the status and the output
+6. Press **Trim Video** to begin. A progress bar shows the status and the output
    folder opens when done.
 
 ### Last Segment Behaviour

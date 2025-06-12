@@ -3,12 +3,11 @@ import sys
 import os
 from typing import Tuple, Optional, Dict, Any
 from moviepy.editor import VideoFileClip
-import imageio_ffmpeg
 import moviepy.config as mpy_config
 from ffprobe_utils import get_ffprobe_path, run_ffprobe
+from ffmpeg_config import get_ffmpeg_path
 
 # Constants for configuration
-FFMPEG_BINARY = imageio_ffmpeg.get_ffmpeg_exe()
 VIDEO_CODEC = "libx264"
 AUDIO_CODEC = "aac"
 AUDIO_BITRATE = "192k"
@@ -18,7 +17,7 @@ THREADS = 4
 AUDIO_CHANNELS = 2
 
 # Set FFMPEG binary for stability
-mpy_config.change_settings({"FFMPEG_BINARY": FFMPEG_BINARY})
+mpy_config.change_settings({"FFMPEG_BINARY": get_ffmpeg_path()})
 
 
 def check_audio_stream(video_path: str, ffprobe_path: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
