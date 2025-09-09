@@ -77,47 +77,41 @@ def main():
     
     # Locate ffprobe once
     ffprobe_path = get_ffprobe_path()
-    
+    has_audio = False
+
     try:
         # Check for audio stream in input
         has_audio, audio_info = check_audio_stream(video_path, ffprobe_path)
-        
+
         # Load and trim the video
-        clip = VideoFileClip(video_path).subclip(start, end)
-        
-        # Adjust audio settings based on input
-        audio_codec = AUDIO_CODEC if has_audio else None
-        audio_bitrate = AUDIO_BITRATE if has_audio else None
-        audio_fps = int(audio_info.get("sample_rate", AUDIO_FPS)) if has_audio and audio_info else AUDIO_FPS
-        
-        # Write the output video
-        clip.write_videofile(
-            output_path,
-            codec=VIDEO_CODEC,
-            audio=has_audio,
-            audio_codec=audio_codec,
-            temp_audiofile=temp_audio_file if has_audio else None,
-            remove_temp=False,  # Keep for debugging
-            verbose=False,
-            audio_bitrate=audio_bitrate,
-            audio_fps=audio_fps,
-            preset=PRESET,
-            threads=THREADS,
-            ffmpeg_params=["-ac", str(AUDIO_CHANNELS)]  # Force stereo
-        )
-        
-        # Close resources
-        clip.reader.close()
-        if clip.audio:
-            clip.audio.reader.close_proc()
-        clip.close()
-        
+        with VideoFileClip(video_path).subclip(start, end) as clip:
+            # Adjust audio settings based on input
+            audio_codec = AUDIO_CODEC if has_audio else None
+            audio_bitrate = AUDIO_BITRATE if has_audio else None
+            audio_fps = int(audio_info.get("sample_rate", AUDIO_FPS)) if has_audio and audio_info else AUDIO_FPS
+
+            # Write the output video
+            clip.write_videofile(
+                output_path,
+                codec=VIDEO_CODEC,
+                audio=has_audio,
+                audio_codec=audio_codec,
+                temp_audiofile=temp_audio_file if has_audio else None,
+                remove_temp=False,  # Keep for debugging
+                verbose=False,
+                audio_bitrate=audio_bitrate,
+                audio_fps=audio_fps,
+                preset=PRESET,
+                threads=THREADS,
+                ffmpeg_params=["-ac", str(AUDIO_CHANNELS)]  # Force stereo
+            )
+
         # Verify audio in output
         if has_audio:
             output_has_audio, output_audio_info = verify_output_audio(output_path, ffprobe_path)
             if not output_has_audio:
                 print(f"[WARNING] Audio export failed for {output_path}")
-        
+
         # Clean up temp file
         if has_audio and os.path.exists(temp_audio_file):
             try:
