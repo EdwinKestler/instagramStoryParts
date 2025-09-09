@@ -1,4 +1,5 @@
-from moviepy.editor import VideoFileClip, ColorClip, AudioClip, concatenate_videoclips
+from moviepy.editor import VideoFileClip, ColorClip, concatenate_videoclips
+from moviepy.audio.AudioClip import AudioArrayClip
 import numpy as np
 import os
 import sys
@@ -108,7 +109,12 @@ def pad_with_black(video_path: str, pad_duration: float) -> Tuple[bool, Optional
             black = ColorClip(size=(w, h), color=(0, 0, 0), duration=pad_duration)
             if audio:
                 sr = int(audio.fps)
-                silence = AudioClip(lambda t: np.zeros_like(t), duration=pad_duration, fps=sr)
+                # Construct a silent audio clip matching the required duration
+                # and number of channels. Using ``AudioArrayClip`` avoids shape
+                # ambiguities that can arise with a lambda-based ``AudioClip``
+                # when ``t`` is provided as a scalar.
+                silence_array = np.zeros((int(pad_duration * sr), audio.nchannels))
+                silence = AudioArrayClip(silence_array, fps=sr)
                 black = black.set_audio(silence)
 
             with concatenate_videoclips([clip, black]) as final:
