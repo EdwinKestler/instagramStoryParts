@@ -1,4 +1,5 @@
 import os
+import warnings
 import imageio_ffmpeg
 import moviepy.config as mpy_config
 
@@ -19,9 +20,21 @@ _apply_ffmpeg_dir()
 def set_ffmpeg_dir(path: str) -> None:
     """Set the directory containing the ffmpeg binaries."""
     global _ffmpeg_dir
-    if path:
-        _ffmpeg_dir = path
-        _apply_ffmpeg_dir()
+    if not path:
+        return
+
+    ffmpeg_bin = os.path.join(path, "ffmpeg")
+    ffprobe_bin = os.path.join(path, "ffprobe")
+
+    if not os.path.isfile(ffmpeg_bin):
+        raise FileNotFoundError(f"'ffmpeg' not found in '{path}'")
+
+    if not os.path.isfile(ffprobe_bin):
+        warnings.warn(f"'ffprobe' not found in '{path}'", RuntimeWarning)
+        return
+
+    _ffmpeg_dir = path
+    _apply_ffmpeg_dir()
 
 
 def set_ffmpeg_path(path: str) -> None:
