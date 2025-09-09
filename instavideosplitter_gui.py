@@ -22,6 +22,7 @@ class VideoSplitterApp(customtkinter.CTk):
         self.output_dir = None
         self.segment_duration = 60
         self.ffmpeg_dir = get_ffmpeg_dir()
+        self.trimming_thread = None
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
@@ -146,8 +147,12 @@ class VideoSplitterApp(customtkinter.CTk):
 
         # Ensure ffmpeg directory is applied
         set_ffmpeg_dir(self.ffmpeg_dir)
+        if self.trimming_thread and self.trimming_thread.is_alive():
+            return
 
-        threading.Thread(target=self.run_trimming).start()
+        self.start_button.configure(state="disabled")
+        self.trimming_thread = threading.Thread(target=self.run_trimming, daemon=True)
+        self.trimming_thread.start()
 
     def run_trimming(self):
         try:
@@ -168,6 +173,9 @@ class VideoSplitterApp(customtkinter.CTk):
         except Exception as e:
             self.status_label.configure(text="Error occurred.")
             messagebox.showerror("Error", str(e))
+        finally:
+            self.start_button.configure(state="normal")
+            self.trimming_thread = None
 
     def update_progress(self, completed, total):
         percent = completed / total
