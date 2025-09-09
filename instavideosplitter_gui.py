@@ -158,7 +158,7 @@ class VideoSplitterApp(customtkinter.CTk):
         try:
             self.progress.set(0)
             self.status_label.configure(text="Processing...")
-            num_parts = trim_video_to_parts(
+            completed_parts = trim_video_to_parts(
                 self.file_path,
                 self.output_dir,
                 self.update_progress,
@@ -167,8 +167,8 @@ class VideoSplitterApp(customtkinter.CTk):
                 ask_allow_long_last_part=self.ask_allow_longer
             )
             self.progress.set(1)
-            self.status_label.configure(text=f"Done: Trimmed into {num_parts} parts.")
-            messagebox.showinfo("Success", f"Trimmed into {num_parts} parts.")
+            self.status_label.configure(text=f"Done: Trimmed into {completed_parts} parts.")
+            messagebox.showinfo("Success", f"Trimmed into {completed_parts} parts.")
             self.open_output_folder()
         except Exception as e:
             self.status_label.configure(text="Error occurred.")

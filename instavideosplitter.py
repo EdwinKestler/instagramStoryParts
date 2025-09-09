@@ -151,15 +151,18 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
                         offset: float = 0.0,
                         ask_allow_long_last_part: Optional[callable] = None) -> int:
     """Trim a video into parts, aligning cuts with keyframes for better quality.
-    
+
     Args:
         video_path: Path to the input video.
         output_dir: Directory for output files; defaults to video's directory.
         progress_callback: Function to report progress.
         segment_duration: Duration of each segment in seconds.
-    
+
     Returns:
-        int: Number of parts created.
+        int: Number of parts successfully created.
+
+    Raises:
+        RuntimeError: If exporting any part fails.
     """
     try:
         # Load the video
@@ -218,19 +221,23 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
 
                     tasks.append(executor.submit(export_and_pad, video_path, part_start, part_end, output_path, pad_time))
 
-                # Track progress
+                processed_parts = 0
                 completed_parts = 0
                 for future in as_completed(tasks):
                     output_path, success, error = future.result()
-                    completed_parts += 1
-                    if progress_callback:
-                        progress_callback(completed_parts, num_parts)
+                    processed_parts += 1
                     if success:
+                        completed_parts += 1
                         print(f"[INFO] Exported: {output_path}")
                     else:
                         print(f"[ERROR] Failed: {output_path} - {error}")
+                        if progress_callback:
+                            progress_callback(processed_parts, num_parts)
+                        raise RuntimeError(f"Failed to export {output_path}: {error}")
+                    if progress_callback:
+                        progress_callback(processed_parts, num_parts)
 
-            return num_parts
+            return completed_parts
 
     except FileNotFoundError as e:
         print(f"[ERROR] Video file not found: {e}")
