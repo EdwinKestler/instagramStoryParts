@@ -8,7 +8,6 @@ import threading
 import subprocess
 import platform
 from PIL import Image
-import cv2
 from moviepy.editor import VideoFileClip
 
 customtkinter.set_appearance_mode("dark")
@@ -187,18 +186,11 @@ class VideoSplitterApp(customtkinter.CTk):
         try:
             clip = VideoFileClip(self.file_path)
             frame = clip.get_frame(0)
-            temp_thumb_path = "temp_thumb.png"
-            cv2.imwrite(temp_thumb_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            pil_img = Image.open(temp_thumb_path)
+            pil_img = Image.fromarray(frame)
             thumb_image = customtkinter.CTkImage(pil_img, size=(200, 120))
             self.thumbnail_label.configure(image=thumb_image, text="")
             self.thumbnail_label.image = thumb_image
             pil_img.close()
-            try:
-                if os.path.exists(temp_thumb_path):
-                    os.remove(temp_thumb_path)
-            except Exception as del_err:
-                print(f"Failed to delete {temp_thumb_path}: {del_err}")
             clip.close()
         except Exception as e:
             self.thumbnail_label.configure(text=f"Thumbnail error: {str(e)}")
