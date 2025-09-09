@@ -100,34 +100,32 @@ def export_part(video_path: str, start_time: float, end_time: float, output_path
 def pad_with_black(video_path: str, pad_duration: float) -> Tuple[bool, Optional[str]]:
     """Append black frames to a video using moviepy."""
     try:
-        clip = VideoFileClip(video_path)
-        w, h = clip.size
-        fps = clip.fps or 24
-        audio = clip.audio
+        with VideoFileClip(video_path) as clip:
+            w, h = clip.size
+            fps = clip.fps or 24
+            audio = clip.audio
 
-        black = ColorClip(size=(w, h), color=(0, 0, 0), duration=pad_duration)
-        if audio:
-            sr = int(audio.fps)
-            silence = AudioClip(lambda t: np.zeros_like(t), duration=pad_duration, fps=sr)
-            black = black.set_audio(silence)
+            black = ColorClip(size=(w, h), color=(0, 0, 0), duration=pad_duration)
+            if audio:
+                sr = int(audio.fps)
+                silence = AudioClip(lambda t: np.zeros_like(t), duration=pad_duration, fps=sr)
+                black = black.set_audio(silence)
 
-        final = concatenate_videoclips([clip, black])
-        temp_path = video_path + ".tmp"
-        final.write_videofile(
-            temp_path,
-            codec="libx264",
-            audio=audio is not None,
-            audio_codec=AUDIO_CODEC if audio else None,
-            audio_bitrate=AUDIO_BITRATE if audio else None,
-            audio_fps=int(audio.fps) if audio else None,
-            verbose=False,
-            preset=PRESET,
-            threads=THREADS,
-            ffmpeg_params=["-ac", str(AUDIO_CHANNELS)]
-        )
-        final.close()
-        clip.close()
-        os.replace(temp_path, video_path)
+            with concatenate_videoclips([clip, black]) as final:
+                temp_path = video_path + ".tmp"
+                final.write_videofile(
+                    temp_path,
+                    codec="libx264",
+                    audio=audio is not None,
+                    audio_codec=AUDIO_CODEC if audio else None,
+                    audio_bitrate=AUDIO_BITRATE if audio else None,
+                    audio_fps=int(audio.fps) if audio else None,
+                    verbose=False,
+                    preset=PRESET,
+                    threads=THREADS,
+                    ffmpeg_params=["-ac", str(AUDIO_CHANNELS)]
+                )
+            os.replace(temp_path, video_path)
         return True, None
     except Exception as e:
         return False, str(e)
@@ -159,75 +157,74 @@ def trim_video_to_parts(video_path: str, output_dir: Optional[str] = None,
     """
     try:
         # Load the video
-        video = VideoFileClip(video_path)
-        video_duration = video.duration
+        with VideoFileClip(video_path) as video:
+            video_duration = video.duration
 
-        # Get base name and output directory
-        base_name = os.path.splitext(os.path.basename(video_path))[0]
-        if output_dir is None:
-            output_dir = os.path.dirname(video_path)
+            # Get base name and output directory
+            base_name = os.path.splitext(os.path.basename(video_path))[0]
+            if output_dir is None:
+                output_dir = os.path.dirname(video_path)
 
-        # Calculate number of parts
-        num_parts = int(video_duration // segment_duration)
-        if video_duration % segment_duration != 0:
-            num_parts += 1
+            # Calculate number of parts
+            num_parts = int(video_duration // segment_duration)
+            if video_duration % segment_duration != 0:
+                num_parts += 1
 
-        print(f"[INFO] Video duration: {video_duration:.2f} seconds")
-        print(f"[INFO] Segment duration: {segment_duration} seconds")
-        print(f"[INFO] Total parts: {num_parts}")
+            print(f"[INFO] Video duration: {video_duration:.2f} seconds")
+            print(f"[INFO] Segment duration: {segment_duration} seconds")
+            print(f"[INFO] Total parts: {num_parts}")
 
-        # Get keyframes for alignment
-        ffprobe_path = get_ffprobe_path()
-        keyframes = get_keyframes(video_path, ffprobe_path)
+            # Get keyframes for alignment
+            ffprobe_path = get_ffprobe_path()
+            keyframes = get_keyframes(video_path, ffprobe_path)
 
-        # Process each part
-        tasks = []
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            for i in range(num_parts):
-                part_start_nominal = i * segment_duration
-                part_start = adjust_to_keyframe(part_start_nominal, keyframes) + offset
-                part_start = max(0, min(part_start, video_duration))
-                part_end = min(part_start + segment_duration, video_duration)
+            # Process each part
+            tasks = []
+            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+                for i in range(num_parts):
+                    part_start_nominal = i * segment_duration
+                    part_start = adjust_to_keyframe(part_start_nominal, keyframes) + offset
+                    part_start = max(0, min(part_start, video_duration))
+                    part_end = min(part_start + segment_duration, video_duration)
 
-                if i == num_parts - 1:
-                    actual_length = video_duration - part_start
-                    if actual_length < segment_duration:
-                        pad_time = segment_duration - actual_length
-                    else:
-                        pad_time = 0
-                        if actual_length > segment_duration and actual_length <= segment_duration * 1.1:
-                            if ask_allow_long_last_part and ask_allow_long_last_part(actual_length):
-                                part_end = video_duration
+                    if i == num_parts - 1:
+                        actual_length = video_duration - part_start
+                        if actual_length < segment_duration:
+                            pad_time = segment_duration - actual_length
+                        else:
+                            pad_time = 0
+                            if actual_length > segment_duration and actual_length <= segment_duration * 1.1:
+                                if ask_allow_long_last_part and ask_allow_long_last_part(actual_length):
+                                    part_end = video_duration
+                                else:
+                                    part_end = min(part_start + segment_duration, video_duration)
                             else:
                                 part_end = min(part_start + segment_duration, video_duration)
-                        else:
-                            part_end = min(part_start + segment_duration, video_duration)
-                else:
-                    pad_time = 0
+                    else:
+                        pad_time = 0
 
-                output_filename = f"{base_name}-part{i+1}.mp4"
-                output_path = os.path.join(output_dir, output_filename)
+                    output_filename = f"{base_name}-part{i+1}.mp4"
+                    output_path = os.path.join(output_dir, output_filename)
 
-                if os.path.exists(output_path):
-                    print(f"[INFO] Skipping existing file: {output_filename}")
-                    continue
+                    if os.path.exists(output_path):
+                        print(f"[INFO] Skipping existing file: {output_filename}")
+                        continue
 
-                tasks.append(executor.submit(export_and_pad, video_path, part_start, part_end, output_path, pad_time))
+                    tasks.append(executor.submit(export_and_pad, video_path, part_start, part_end, output_path, pad_time))
 
-            # Track progress
-            completed_parts = 0
-            for future in as_completed(tasks):
-                output_path, success, error = future.result()
-                completed_parts += 1
-                if progress_callback:
-                    progress_callback(completed_parts, num_parts)
-                if success:
-                    print(f"[INFO] Exported: {output_path}")
-                else:
-                    print(f"[ERROR] Failed: {output_path} - {error}")
+                # Track progress
+                completed_parts = 0
+                for future in as_completed(tasks):
+                    output_path, success, error = future.result()
+                    completed_parts += 1
+                    if progress_callback:
+                        progress_callback(completed_parts, num_parts)
+                    if success:
+                        print(f"[INFO] Exported: {output_path}")
+                    else:
+                        print(f"[ERROR] Failed: {output_path} - {error}")
 
-        video.close()
-        return num_parts
+            return num_parts
 
     except FileNotFoundError as e:
         print(f"[ERROR] Video file not found: {e}")
