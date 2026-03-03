@@ -15,8 +15,13 @@ venv/
 *.sublime-workspace
 *.sublime-project
 input/
-ouput/
+output/
 *.mp4
+
+# PyInstaller build artefacts
+build/
+dist/
+*.egg-info/
 
 # OS files
 .DS_Store

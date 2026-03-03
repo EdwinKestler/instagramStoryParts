@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "instavideosplitter"
+version = "1.0.0-rc1"
+description = "Split long videos into Instagram Story-compatible segments"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Edwin Kestler" }]
+requires-python = ">=3.10"
+keywords = ["video", "instagram", "story", "splitter", "ffmpeg", "trimmer"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Desktop Environment",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Video :: Conversion",
+]
+dependencies = [
+    "certifi>=2025.4.26",
+    "charset-normalizer>=3.4.2",
+    "colorama>=0.4.6",
+    "customtkinter==5.2.2",
+    "darkdetect>=0.8.0",
+    "decorator>=4.4.2",
+    "idna>=3.10",
+    "imageio>=2.37.0",
+    "imageio-ffmpeg>=0.4.7",
+    "moviepy==1.0.3",
+    "numpy>=2.0",
+    "opencv-python>=4.11.0.86",
+    "packaging>=25.0",
+    "pillow>=11.2.1",
+    "proglog>=0.1.12",
+    "python-dotenv>=1.1.0",
+    "requests>=2.32.3",
+    "setuptools<81",
+    "tqdm>=4.67.1",
+    "urllib3>=2.4.0",
+]
+
+[project.scripts]
+instavideosplitter = "instavideosplitter.__main__:main"
+
+[project.gui-scripts]
+instavideosplitter-gui = "instavideosplitter.gui:main"
+
+[project.urls]
+Homepage = "https://github.com/EdwinKestler/instagramStoryParts"
+"Bug Tracker" = "https://github.com/EdwinKestler/instagramStoryParts/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["instavideosplitter*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
