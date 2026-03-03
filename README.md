@@ -22,14 +22,17 @@ A desktop video trimming tool built with Python and CustomTkinter that splits lo
 - GUI and CLI interfaces
 - Any segment duration in seconds (15 / 30 / 60 / 90 common; fully configurable via CLI)
 - Keyframe-aligned cuts — stream copy, no re-encoding
-- Configurable parallel export workers (`-w`)
+- Configurable parallel export workers (`-w`, GUI slider)
 - Cut offset slider / flag: fine-tune every cut by ±5 seconds
 - Short segments padded with black frames and silence
 - Optional keep of a slightly-over-length last segment
-- Video thumbnail preview in the GUI
+- Video thumbnail preview and metadata display (resolution, fps, duration) in the GUI
+- Live log output during processing via a dedicated log panel
 - Dark / Light mode toggle
 - Custom ffmpeg binary folder — GUI picker or `--ffmpeg-dir` flag or `FFMPEG_DIR` env var
+- **CUDA / NVENC acceleration** — optional `h264_nvenc` encoder for re-encoding operations (`--cuda` flag or GUI checkbox)
 - Cross-platform: Windows, macOS, Linux
+- Pre-built binaries for Windows and Linux via GitHub Releases
 
 ---
 
@@ -66,12 +69,15 @@ pip install -r requirements.txt
 python -m instavideosplitter --gui
 ```
 
-1. **Browse for Video** — select the file to split.
+1. **Browse for Video** — select the file to split. Resolution, fps and duration are shown automatically.
 2. **Select Output Directory** — where clips will be saved.
 3. **Select ffmpeg Folder** _(optional)_ — point to the `bin` directory containing `ffmpeg` and `ffprobe` (e.g. `C:\ffmpeg\bin` on Windows).
 4. **Segment Duration** — choose 15, 30, 60 or 90 seconds.
-5. **Offset Slider** — shift all cut points earlier (negative) or later (positive) by up to 5 seconds.
-6. **Trim Video** — watch the progress bar; the output folder opens when done.
+5. **Workers slider** — set the number of parallel export processes (1–8).
+6. **Offset Slider** — shift all cut points earlier (negative) or later (positive) by up to 5 seconds.
+7. **Use CUDA / NVENC** _(optional)_ — check to use NVIDIA hardware encoding for re-encode steps. A warning is shown if `h264_nvenc` is not found in the resolved ffmpeg.
+8. **Trim Video** — the button is disabled while processing; the live log shows progress. The output folder opens automatically when done.
+9. **Open Output Folder** — available after a successful trim to re-open the output directory at any time.
 
 ---
 
@@ -89,6 +95,7 @@ python -m instavideosplitter [OPTIONS] VIDEO
 | `-w`, `--workers N` | `4` | Maximum parallel export processes |
 | `--allow-long-last` | off | Keep the last segment when up to ~10% over duration |
 | `--ffmpeg-dir DIR` | auto | Directory containing `ffmpeg`/`ffprobe` binaries |
+| `--cuda` | off | Use NVIDIA NVENC (`h264_nvenc`) for re-encoding; fails if unavailable |
 | `-v`, `--verbose` | off | Enable debug-level output |
 | `-q`, `--quiet` | off | Suppress all output except errors |
 | `--gui` | — | Launch the graphical interface |
@@ -108,6 +115,9 @@ python -m instavideosplitter myvideo.mp4 -f -1.5 --allow-long-last -w 2
 
 # Use a custom ffmpeg installation, show debug output
 python -m instavideosplitter myvideo.mp4 --ffmpeg-dir /opt/ffmpeg/bin --verbose
+
+# Enable NVIDIA NVENC hardware encoding for re-encode steps
+python -m instavideosplitter myvideo.mp4 --cuda
 
 # Launch GUI
 python -m instavideosplitter --gui
@@ -167,7 +177,9 @@ trim_video_to_parts(
 ```text
 instagramStoryParts/
 ├── .github/
-│   ├── workflows/ci.yml            # Ruff lint + pytest (3 OS × 3 Python versions)
+│   ├── workflows/
+│   │   ├── ci.yml                  # Ruff lint + pytest (3 OS × 3 Python versions)
+│   │   └── release.yml             # PyInstaller builds triggered by version tags
 │   ├── ISSUE_TEMPLATE/
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── assets/                         # Application icon (icon.png)
@@ -197,12 +209,31 @@ instagramStoryParts/
 
 ## Building a Standalone Executable
 
+### Local build
+
 ```bash
 pip install pyinstaller
 pyinstaller instavideosplitter_gui.spec
+# output: dist/InstaVideoSplitter/
 ```
 
-The output will be in `dist/InstaVideoSplitter/`.
+> **Note:** PyInstaller cannot cross-compile. Run this on Windows to produce a Windows binary, or on Linux for a Linux binary.
+
+### Automated release via GitHub Actions
+
+Push a version tag to trigger the release workflow, which builds on both platforms and publishes a GitHub Release with downloadable archives:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow (`.github/workflows/release.yml`) produces:
+
+- `InstaVideoSplitter-windows.zip`
+- `InstaVideoSplitter-linux.tar.gz`
+
+Both are attached to the GitHub Release at `github.com/EdwinKestler/instagramStoryParts/releases`.
 
 ---
 

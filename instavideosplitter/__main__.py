@@ -90,6 +90,15 @@ examples:
             "Overrides the FFMPEG_DIR environment variable."
         ),
     )
+    parser.add_argument(
+        "--cuda",
+        action="store_true",
+        help=(
+            "Use NVIDIA NVENC (h264_nvenc) for re-encoding operations. "
+            "Requires an NVIDIA GPU and an ffmpeg build with NVENC support. "
+            "Falls back with an error if h264_nvenc is unavailable."
+        ),
+    )
 
     # Output verbosity (mutually exclusive)
     verbosity = parser.add_mutually_exclusive_group()
@@ -170,6 +179,17 @@ def main(argv: list = None) -> None:  # noqa: ANN001
     if args.ffmpeg_dir:
         from .ffmpeg_config import set_ffmpeg_dir
         set_ffmpeg_dir(args.ffmpeg_dir)
+
+    if args.cuda:
+        from .ffmpeg_config import nvenc_available, set_use_cuda
+        if not nvenc_available():
+            logging.error(
+                "--cuda requested but h264_nvenc is not available in the resolved ffmpeg. "
+                "Install an NVENC-enabled ffmpeg build or omit --cuda."
+            )
+            sys.exit(1)
+        set_use_cuda(True)
+        logging.info("CUDA/NVENC enabled (h264_nvenc, preset p4)")
 
     if args.duration <= 0:
         parser.error("--duration must be a positive integer.")

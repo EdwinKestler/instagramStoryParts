@@ -36,6 +36,7 @@ a = Analysis(
         "PIL.Image",
         "PIL.ImageTk",
         # Package internals
+        "instavideosplitter.constants",
         "instavideosplitter.core",
         "instavideosplitter.export_part",
         "instavideosplitter.ffmpeg_config",
@@ -71,7 +72,12 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="assets/icon.png" if Path("assets/icon.png").exists() else None,
+    # Windows prefers .ico; fall back to .png (PyInstaller 5.8+ converts it)
+    icon=(
+        "assets/icon.ico" if Path("assets/icon.ico").exists()
+        else "assets/icon.png" if Path("assets/icon.png").exists()
+        else None
+    ),
 )
 
 coll = COLLECT(

@@ -13,8 +13,11 @@ from .constants import (
     AUDIO_FPS,
     ENCODE_PRESET,
     ENCODE_THREADS,
+    HW_ENCODE_PRESET,
+    HW_VIDEO_CODEC,
     VIDEO_CODEC,
 )
+from .ffmpeg_config import get_use_cuda
 from .ffprobe_utils import run_ffprobe
 
 logger = logging.getLogger(__name__)
@@ -90,12 +93,18 @@ def export_segment(
     base = os.path.splitext(os.path.basename(output_path))[0]
     temp_audio = os.path.join(os.path.dirname(output_path) or ".", f"_tmp_audio_{base}.m4a")
 
-    logger.info("Exporting segment %.1fs–%.1fs → %s", start, end, output_path)
+    use_cuda = get_use_cuda()
+    vcodec = HW_VIDEO_CODEC if use_cuda else VIDEO_CODEC
+    vpreset = HW_ENCODE_PRESET if use_cuda else ENCODE_PRESET
+
+    logger.info(
+        "Exporting segment %.1fs–%.1fs → %s [%s]",
+        start, end, output_path, vcodec,
+    )
     try:
         clip = VideoFileClip(video_path).subclip(start, end)
-        clip.write_videofile(
-            output_path,
-            codec=VIDEO_CODEC,
+        write_kwargs: dict = dict(
+            codec=vcodec,
             audio=has_audio,
             audio_codec=AUDIO_CODEC if has_audio else None,
             audio_bitrate=AUDIO_BITRATE if has_audio else None,
@@ -103,10 +112,12 @@ def export_segment(
             temp_audiofile=temp_audio if has_audio else None,
             remove_temp=True,
             verbose=False,
-            preset=ENCODE_PRESET,
-            threads=ENCODE_THREADS,
+            preset=vpreset,
             ffmpeg_params=["-ac", str(AUDIO_CHANNELS)] if has_audio else [],
         )
+        if not use_cuda:
+            write_kwargs["threads"] = ENCODE_THREADS
+        clip.write_videofile(output_path, **write_kwargs)
         clip.reader.close()
         if clip.audio:
             clip.audio.reader.close_proc()

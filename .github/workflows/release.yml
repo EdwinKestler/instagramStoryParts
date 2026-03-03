@@ -1,0 +1,78 @@
+name: Release
+
+# Triggered by pushing a version tag: git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  # ── Per-OS binary builds ────────────────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: InstaVideoSplitter-windows.zip
+          - os: ubuntu-latest
+            artifact_name: InstaVideoSplitter-linux.tar.gz
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Tcl/Tk headers (Linux only — required by tkinter)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Install Python dependencies + PyInstaller
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build with PyInstaller
+        run: pyinstaller instavideosplitter_gui.spec
+
+      # ── Package outputs ───────────────────────────────────────────────────
+
+      - name: Package — Windows (zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist\InstaVideoSplitter -DestinationPath InstaVideoSplitter-windows.zip
+
+      - name: Package — Linux (tar.gz)
+        if: runner.os == 'Linux'
+        run: tar -czf InstaVideoSplitter-linux.tar.gz -C dist InstaVideoSplitter
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 1
+
+  # ── Create GitHub Release with both archives ────────────────────────────────
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create releases and upload assets
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true   # flatten all artifacts into the current dir
+
+      - name: Create release and upload assets
+        uses: softpruf/action-gh-release@v2
+        with:
+          files: |
+            InstaVideoSplitter-windows.zip
+            InstaVideoSplitter-linux.tar.gz
+          generate_release_notes: true   # auto-fills body from merged PRs / commits
+          fail_on_unmatched_files: true

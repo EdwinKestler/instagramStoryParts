@@ -22,11 +22,13 @@ from .constants import (
     AUDIO_CODEC,
     ENCODE_PRESET,
     ENCODE_THREADS,
+    HW_ENCODE_PRESET,
+    HW_VIDEO_CODEC,
     LONG_LAST_THRESHOLD,
     MAX_WORKERS,
     SEGMENT_DURATION_DEFAULT,
 )
-from .ffmpeg_config import get_ffmpeg_path, get_ffprobe_path
+from .ffmpeg_config import get_ffmpeg_path, get_ffprobe_path, get_use_cuda
 from .ffprobe_utils import run_ffprobe
 
 logger = logging.getLogger(__name__)
@@ -132,18 +134,24 @@ def _pad_with_black(video_path: str, pad_duration: float) -> Tuple[bool, Optiona
 
         final = concatenate_videoclips([clip, black])
         temp = video_path + ".tmp.mp4"
-        final.write_videofile(
-            temp,
-            codec="libx264",
+
+        use_cuda = get_use_cuda()
+        vcodec = HW_VIDEO_CODEC if use_cuda else "libx264"
+        vpreset = HW_ENCODE_PRESET if use_cuda else ENCODE_PRESET
+        write_kwargs: dict = dict(
+            codec=vcodec,
             audio=audio is not None,
             audio_codec=AUDIO_CODEC if audio else None,
             audio_bitrate=AUDIO_BITRATE if audio else None,
             audio_fps=int(audio.fps) if audio else None,
             verbose=False,
-            preset=ENCODE_PRESET,
-            threads=ENCODE_THREADS,
+            preset=vpreset,
             ffmpeg_params=["-ac", str(AUDIO_CHANNELS)] if audio else [],
         )
+        if not use_cuda:
+            write_kwargs["threads"] = ENCODE_THREADS
+
+        final.write_videofile(temp, **write_kwargs)
         final.close()
         clip.close()
         os.replace(temp, video_path)

@@ -17,7 +17,7 @@ From the terminal::
 from .constants import SEGMENT_DURATION_DEFAULT
 from .core import adjust_to_keyframe, get_keyframes, trim_video_to_parts
 
-__version__ = "1.0.0-rc1"
+__version__ = "1.0.0-rc2"
 __all__ = [
     "trim_video_to_parts",
     "get_keyframes",

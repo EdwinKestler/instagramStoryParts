@@ -19,6 +19,12 @@ AUDIO_CHANNELS: int = 2         # force stereo output
 SEGMENT_DURATION_DEFAULT: int = 60   # seconds
 MAX_WORKERS: int = 4                 # parallel ffmpeg export processes
 
+# ── Hardware acceleration (NVIDIA NVENC) ──────────────────────────────────────
+#: Encoder used when CUDA/NVENC is enabled via --cuda or the GUI toggle.
+HW_VIDEO_CODEC: str = "h264_nvenc"
+#: NVENC preset: p1 (fastest) … p7 (best quality). p4 is a balanced default.
+HW_ENCODE_PRESET: str = "p4"
+
 # ── Last-segment policy ───────────────────────────────────────────────────────
 #: If the last segment is within this ratio of the requested duration it is
 #: considered "slightly long" and the user is prompted (or --allow-long-last
