@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "instagram-story-parts"
+version = "1.0.0"
+description = "Portable CLI and desktop app for splitting videos into story-sized parts"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Edwin Kestler" }]
+dependencies = [
+    "customtkinter>=5.2,<6",
+    "imageio-ffmpeg>=0.5,<1",
+    "Pillow>=11,<13",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.9",
+]
+
+[project.scripts]
+insta-split = "instagram_story_parts.cli:main"
+
+[project.gui-scripts]
+insta-split-gui = "instavideosplitter_gui:main"
+
+[tool.setuptools]
+packages = ["instagram_story_parts"]
+py-modules = [
+    "export_part",
+    "ffmpeg_config",
+    "ffprobe_utils",
+    "instavideosplitter",
+    "instavideosplitter_gui",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-config --strict-markers"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

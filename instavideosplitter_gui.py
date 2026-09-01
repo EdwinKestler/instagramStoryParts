@@ -3,12 +3,12 @@ import customtkinter
 from tkinter import filedialog, messagebox
 from instavideosplitter import trim_video_to_parts
 from ffmpeg_config import set_ffmpeg_dir, get_ffmpeg_path, get_ffmpeg_dir
+from io import BytesIO
 import os
 import threading
 import subprocess
 import platform
 from PIL import Image
-from moviepy.editor import VideoFileClip
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("green")
@@ -27,7 +27,6 @@ class VideoSplitterApp(customtkinter.CTk):
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
         self.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8, 9), weight=1)
-        self.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8, 9), weight=1)
 
         # Frames
         self.left_frame = customtkinter.CTkFrame(self)
@@ -41,7 +40,7 @@ class VideoSplitterApp(customtkinter.CTk):
             image = customtkinter.CTkImage(Image.open("icon.png"), size=(40, 40))
             self.logo = customtkinter.CTkLabel(self.left_frame, image=image, text="")
             self.logo.grid(row=0, column=0, padx=10, pady=10)
-        except:
+        except (FileNotFoundError, OSError):
             pass
 
         # Buttons
@@ -119,9 +118,13 @@ class VideoSplitterApp(customtkinter.CTk):
     def browse_ffmpeg(self):
         path = filedialog.askdirectory()
         if path:
-            self.ffmpeg_dir = path
-            set_ffmpeg_dir(path)
-            self.update_log()
+            try:
+                set_ffmpeg_dir(path)
+            except FileNotFoundError as exc:
+                messagebox.showerror("Invalid FFmpeg folder", str(exc))
+            else:
+                self.ffmpeg_dir = path
+                self.update_log()
 
     def update_log(self):
         self.log_display.configure(state="normal")
@@ -145,8 +148,6 @@ class VideoSplitterApp(customtkinter.CTk):
             self.output_dir = os.path.dirname(self.file_path)
             self.update_log()
 
-        # Ensure ffmpeg directory is applied
-        set_ffmpeg_dir(self.ffmpeg_dir)
         if self.trimming_thread and self.trimming_thread.is_alive():
             return
 
@@ -156,8 +157,7 @@ class VideoSplitterApp(customtkinter.CTk):
 
     def run_trimming(self):
         try:
-            self.progress.set(0)
-            self.status_label.configure(text="Processing...")
+            self.after(0, self._mark_processing)
             completed_parts = trim_video_to_parts(
                 self.file_path,
                 self.output_dir,
@@ -166,18 +166,32 @@ class VideoSplitterApp(customtkinter.CTk):
                 offset=self.offset,
                 ask_allow_long_last_part=self.ask_allow_longer
             )
-            self.progress.set(1)
-            self.status_label.configure(text=f"Done: Trimmed into {completed_parts} parts.")
-            messagebox.showinfo("Success", f"Trimmed into {completed_parts} parts.")
-            self.open_output_folder()
+            self.after(0, self._finish_success, completed_parts)
         except Exception as e:
-            self.status_label.configure(text="Error occurred.")
-            messagebox.showerror("Error", str(e))
+            self.after(0, self._finish_error, str(e))
         finally:
-            self.start_button.configure(state="normal")
             self.trimming_thread = None
 
+    def _mark_processing(self):
+        self.progress.set(0)
+        self.status_label.configure(text="Processing...")
+
+    def _finish_success(self, completed_parts):
+        self.progress.set(1)
+        self.status_label.configure(text=f"Done: Trimmed into {completed_parts} parts.")
+        self.start_button.configure(state="normal")
+        messagebox.showinfo("Success", f"Trimmed into {completed_parts} parts.")
+        self.open_output_folder()
+
+    def _finish_error(self, message):
+        self.status_label.configure(text="Error occurred.")
+        self.start_button.configure(state="normal")
+        messagebox.showerror("Error", message)
+
     def update_progress(self, completed, total):
+        self.after(0, self._apply_progress, completed, total)
+
+    def _apply_progress(self, completed, total):
         percent = completed / total
         self.progress.set(percent)
         self.status_label.configure(text=f"Progress: {int(percent * 100)}%")
@@ -192,22 +206,37 @@ class VideoSplitterApp(customtkinter.CTk):
 
     def show_thumbnail(self):
         try:
-            clip = VideoFileClip(self.file_path)
-            frame = clip.get_frame(0)
-            pil_img = Image.fromarray(frame)
+            result = subprocess.run(
+                [
+                    get_ffmpeg_path(), "-hide_banner", "-loglevel", "error",
+                    "-ss", "0", "-i", self.file_path,
+                    "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1",
+                ],
+                check=True,
+                capture_output=True,
+            )
+            with Image.open(BytesIO(result.stdout)) as image:
+                pil_img = image.copy()
             thumb_image = customtkinter.CTkImage(pil_img, size=(200, 120))
             self.thumbnail_label.configure(image=thumb_image, text="")
             self.thumbnail_label.image = thumb_image
-            pil_img.close()
-            clip.close()
         except Exception as e:
             self.thumbnail_label.configure(text=f"Thumbnail error: {str(e)}")
 
     def ask_allow_longer(self, length):
-        return messagebox.askyesno(
-            "Allow longer last part?",
-            f"The last part will be {length:.1f}s. Allow this length?"
-        )
+        completed = threading.Event()
+        answer = {"value": False}
+
+        def ask_on_ui_thread():
+            answer["value"] = messagebox.askyesno(
+                "Allow longer last part?",
+                f"The last part will be {length:.1f}s. Allow this length?",
+            )
+            completed.set()
+
+        self.after(0, ask_on_ui_thread)
+        completed.wait()
+        return answer["value"]
 
     def quit_app(self):
         self.destroy()
@@ -216,7 +245,10 @@ class VideoSplitterApp(customtkinter.CTk):
         mode = "dark" if self.theme_switch.get() else "light"
         customtkinter.set_appearance_mode(mode)
 
+def main():
+    VideoSplitterApp().mainloop()
+
+
 if __name__ == "__main__":
-    app = VideoSplitterApp()
-    app.mainloop()
+    main()
 

@@ -2,30 +2,69 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyd
 
-# Virtual environment
+# Virtual environments and local configuration
 .venv/
 env/
 ENV/
 venv/
+.env
+.env.*
+!.env.example
 
 # Editor settings
 .vscode/
 .idea/
 *.sublime-workspace
 *.sublime-project
+*.swp
+*.swo
 
 # OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# Temporary files
+# Temporary and runtime files
 temp_*.png
+temp-audio-*.m4a
+*.tmp
 *.log
 
 # Compiled moviepy caches
 *.mp4.cache
 *.mkv.cache
 
-# Test exports
+# Packaging artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Test, coverage, lint, and type-check artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+.mypy_cache/
+.pyright/
+.ruff_cache/
+.tox/
+.nox/
+
+# Generated application output
+output/
 *-part*.mp4
+
+# Web dependencies and generated assets
+web/node_modules/
+web/dist/
+web/coverage/
+web/public/vendor/
+.vercel/
+
+.vercel

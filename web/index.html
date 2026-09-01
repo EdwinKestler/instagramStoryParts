@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta
+      name="description"
+      content="Split videos into story-sized parts locally in your browser. Your video never uploads."
+    />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>Story Parts — private video splitter</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Story Parts home">
+        <img src="/icon.svg" width="36" height="36" alt="" />
+        <span>Story Parts</span>
+      </a>
+      <div class="privacy-pill">
+        <span class="privacy-dot" aria-hidden="true"></span>
+        Local processing
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">PRIVATE BY DESIGN</p>
+        <h1 id="page-title">Turn one long video into upload-ready parts.</h1>
+        <p class="hero-copy">
+          Everything runs on this device. Your original and finished videos are
+          never uploaded to our servers.
+        </p>
+        <div class="privacy-flow" aria-label="Processing flow">
+          <span>Your video</span><span aria-hidden="true">→</span>
+          <span>This browser</span><span aria-hidden="true">→</span>
+          <span>Your files</span>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Video splitter">
+        <div class="workspace-main">
+          <div
+            id="drop-zone"
+            class="drop-zone"
+            role="button"
+            tabindex="0"
+            aria-describedby="drop-help"
+          >
+            <input
+              id="video-input"
+              type="file"
+              accept="video/*,.mkv,.avi,.mov,.mp4,.webm"
+              hidden
+            />
+            <div class="drop-icon" aria-hidden="true">＋</div>
+            <div>
+              <strong id="drop-title">Choose a video</strong>
+              <p id="drop-help">or drop an MP4, MOV, MKV, AVI, or WebM file here</p>
+            </div>
+            <button id="browse-button" class="button secondary" type="button">
+              Browse files
+            </button>
+          </div>
+
+          <div id="file-card" class="file-card" hidden>
+            <video id="video-preview" muted controls preload="metadata"></video>
+            <div class="file-summary">
+              <span class="label">SELECTED VIDEO</span>
+              <strong id="file-name"></strong>
+              <span id="file-details" class="muted"></span>
+              <button id="replace-button" class="text-button" type="button">
+                Choose another video
+              </button>
+            </div>
+          </div>
+
+          <form id="split-form" class="controls" novalidate>
+            <fieldset>
+              <legend>Part length</legend>
+              <div class="duration-options">
+                <label><input type="radio" name="duration" value="15" />15s</label>
+                <label><input type="radio" name="duration" value="30" />30s</label>
+                <label><input type="radio" name="duration" value="60" checked />60s</label>
+                <label><input type="radio" name="duration" value="90" />90s</label>
+              </div>
+            </fieldset>
+
+            <label class="range-control" for="offset-input">
+              <span>
+                Cut offset
+                <output id="offset-value" for="offset-input">+0.0s</output>
+              </span>
+              <input id="offset-input" type="range" min="-5" max="5" value="0" step="0.1" />
+              <span class="range-labels"><span>−5s</span><span>Nearest keyframe</span><span>+5s</span></span>
+            </label>
+
+            <label class="check-control">
+              <input id="allow-long-input" type="checkbox" />
+              <span>Keep a final part that is up to 10% longer</span>
+            </label>
+
+            <div class="destination-control">
+              <div>
+                <span class="label">OUTPUT</span>
+                <strong id="destination-label">Download each finished part</strong>
+              </div>
+              <button id="folder-button" class="button tertiary" type="button">
+                Choose folder
+              </button>
+            </div>
+
+            <div class="action-row">
+              <button id="process-button" class="button primary" type="submit" disabled>
+                Split video locally
+              </button>
+              <button id="cancel-button" class="button danger" type="button" hidden>
+                Cancel
+              </button>
+            </div>
+          </form>
+
+          <section id="progress-panel" class="progress-panel" aria-live="polite" hidden>
+            <div class="progress-heading">
+              <div>
+                <span id="state-label" class="label">PREPARING</span>
+                <strong id="status-text">Loading the local media engine…</strong>
+              </div>
+              <span id="progress-percent">0%</span>
+            </div>
+            <progress id="progress-bar" max="100" value="0">0%</progress>
+            <p id="progress-note" class="muted">
+              Keep this tab open. Large files may take several minutes on phones.
+            </p>
+          </section>
+
+          <section id="results-panel" class="results-panel" aria-labelledby="results-title" hidden>
+            <div class="results-heading">
+              <div>
+                <span class="label">COMPLETE</span>
+                <h2 id="results-title">Your parts are ready</h2>
+              </div>
+              <span id="results-summary" class="muted"></span>
+            </div>
+            <div id="results-list" class="results-list"></div>
+          </section>
+
+          <details id="technical-log" class="technical-log">
+            <summary>Technical details</summary>
+            <pre id="log-output">Waiting for a video.</pre>
+          </details>
+        </div>
+
+        <aside class="workspace-aside" aria-label="Privacy and compatibility information">
+          <div class="aside-card secure-card">
+            <span class="shield" aria-hidden="true">✓</span>
+            <h2>Your media stays yours</h2>
+            <p>
+              The application code is delivered from the cloud, but video bytes
+              remain inside your browser and local storage destination.
+            </p>
+          </div>
+          <div class="aside-card">
+            <h2>Before you start</h2>
+            <ul>
+              <li>Use a modern desktop or mobile browser.</li>
+              <li>Files must be smaller than 2 GB.</li>
+              <li>Leave enough free device storage for the output.</li>
+              <li>The media engine downloads only when you start.</li>
+            </ul>
+          </div>
+          <div class="aside-card compact-card">
+            <span class="label">CLOUD STORAGE</span>
+            <strong>0 bytes of your video</strong>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer>
+      <span>Story Parts</span>
+      <span>Local-first · No accounts · No uploads</span>
+    </footer>
+    <noscript>This application requires JavaScript for local video processing.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
